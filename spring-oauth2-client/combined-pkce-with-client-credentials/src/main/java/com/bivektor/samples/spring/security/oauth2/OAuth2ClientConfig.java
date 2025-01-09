@@ -18,10 +18,8 @@ public class OAuth2ClientConfig {
       HttpSecurity http,
       ClientRegistrationRepository clientRegistrationRepository
   ) throws Exception {
-    http.authorizeHttpRequests(authorize -> authorize.requestMatchers("/oauth2/token/**")
-        .permitAll()
-        .anyRequest()
-        .authenticated());
+
+    http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());
 
     String loginEndpointUri = "/oauth2/authorization";
 
