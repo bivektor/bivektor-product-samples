@@ -43,32 +43,32 @@ For local testing, we provided a docker compose file at the project root for run
 local [KeyCloak](https://www.keycloak.org/) server at HTTP 8181 port. Execute the command
 `docker compose up` to start the server and `docker compose down` for stopping it.
 
-### Proxy Authentication Flow
+### Proxy Authorization Code Authentication Flow
 
-Client application sends a login request to Spring's standard oauth2 login endpoint
+1. Client application sends a login request to Spring's standard oauth2 login endpoint
 at `outh2/authorization/$targetClientId?client_id=$sourceClientId` where `$targetClientId` 
 is the **registration ID** of the client that represents the target authorization server
 configured under the `spring.security.oauth2.client` configuration property. 
 For this sample, this value is `keycloak` as we have only one login client configured.
 
-1. `$sourceClientId` is the OAuth2 Client ID (not the registration ID) of the client that represents
+2. `$sourceClientId` is the OAuth2 Client ID (not the registration ID) of the client that represents
 the application that is logging through the proxy. These clients are represented by the `RegisteredClient`
 class in Spring Authorization Server. We configure them under the `spring.security.oauth2.authorizationserver.client`
 configuration key. Again for this example, we have only one RegisteredClient whose client ID is 
 `demoClient`. 
 
-2. Proxy login request is detected by `ProxyOAuth2AuthorizationRequestResolver`, validated and attached
+3. Proxy login request is detected by `ProxyOAuth2AuthorizationRequestResolver`, validated and attached
 to the original authorization request that will be used for authenticating with the target authorization
 server.
 
-3. Default Spring OAuth2 Client components redirect the request to the target server, obtain the 
+4. Default Spring OAuth2 Client components redirect the request to the target server, obtain the 
 resource owner tokens (access & refresh tokens) and store it for future access.                                                                      
 
-4. `ProxyAuthenticationSuccessHandler` class processes the authentication. For non-proxy requests,
+5. `ProxyAuthenticationSuccessHandler` class processes the authentication. For non-proxy requests,
 it delegates to the Spring's default authentication handler. For proxy requests, it creates
 a new authorization code and redirects back to the application that initiated the login.
 
-5. Client application executes the token exchange process by posting to the Spring Authorization Server's
+6. Client application executes the token exchange process by posting to the Spring Authorization Server's
 token endpoint (`/oauth2/token` by default) and obtains the access and refresh token previously
 provided by the target authorization server to the proxy server. Note that,
 all standard authentication providers configured by Spring's default endpoint configuration apply
