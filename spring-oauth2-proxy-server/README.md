@@ -202,8 +202,5 @@ authorization server directly once they get the access/refresh tokens from the p
 
 
 ## Disclaimer
-We have tested and used this application, but we do not accept any responsibility for potential 
-security vulnerabilities or problems that may arise. Please use it only after conducting your own 
-security tests and validating all flows. In particular, the token exchange phase may not have been 
-thoroughly tested - ensure that you perform necessary testing yourself. 
-If you have an application requiring high security and need access to the source code, please [contact us](mailto:info@bivektor.com).
+We have been testing and using these tools, but we do not accept any responsibility for potential security vulnerabilities or problems that may arise. Please use it only after conducting your own security tests and validating all flows. If you have an application requiring high security and 
+need access to the source code, please [contact us](mailto:info@bivektor.com).
