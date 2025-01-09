@@ -1,0 +1,1 @@
+rootProject.name = "combined-pkce-with-client-credentials"

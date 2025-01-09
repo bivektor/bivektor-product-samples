@@ -73,7 +73,7 @@ public class OAuth2ClientConfig {
   }
 
   @Bean
-  @Order(1)
+  @Order(2)
   public SecurityFilterChain oauth2ClientSecurityFilterChain(
       HttpSecurity http,
       @Qualifier("proxyAuthenticationSuccessHandler")
@@ -82,10 +82,20 @@ public class OAuth2ClientConfig {
       OAuth2UserService<OAuth2UserRequest, OAuth2User> oAuth2UserService,
       OidcUserService oidcUserService
   ) throws Exception {
-    http.authorizeHttpRequests(authorize -> authorize.requestMatchers("/oauth2/token/**").permitAll()
-        .anyRequest().authenticated());
+    http.authorizeHttpRequests(authorize ->
+        authorize
+            .requestMatchers("/oauth2/token/**", "/login").permitAll()
+            .anyRequest().authenticated()
+    );
 
     http.oauth2Login(login -> {
+
+      // Use a custom login page, because we don't want the default login page to list
+      // all possible clients to end users of the applications that use us as a proxy
+      // You may consider protecting login page by IP address or other means so that only known
+      // users access it
+      login.loginPage("/login");
+
       login.successHandler(proxyAuthenticationSuccessHandler);
 
       login.authorizationEndpoint(endpoint -> {

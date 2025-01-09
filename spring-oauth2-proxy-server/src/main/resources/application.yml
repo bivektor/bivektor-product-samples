@@ -5,7 +5,7 @@ spring:
         registration:
           keycloak:
             provider: keycloak
-            client-id: proxy-server-demo
+            client-id: spring-test
             authorization-grant-type: authorization_code
             scope: openid,profile,email
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"

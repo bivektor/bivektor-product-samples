@@ -36,7 +36,7 @@ authentication with the target authorization server
 
 **Bivektor Spring OAuth2 Proxy**: Our internal components that coordinate the proxy
 authentication and authorization. Note that source code is not provided for those components.
-Please contact us via email in case you need support or the source code for legal
+Please contact us via [email](mailto:info@bivektor.com) in case you need support or the source code for legal
 reasons.
 
 For local testing, we provided a docker compose file at the project root for running a
@@ -118,7 +118,7 @@ the same way when both Client and PKCE Authentication are enabled for a specific
 ## Running the Project
 
 1. Start the local KeyCloak server as described above
-2. Create a client in KeyCloak with Client ID = `proxy-server-demo`. Configure client credentials
+2. Create a client in KeyCloak with Client ID = `spring-test`. Configure client credentials
 authentication and/or PKCE authentication. Note that depending on the choice, you may have to change
 `client-authentication-method` of the **keycloak** client in the application configuration. For PKCE,
 set it to `none`. For client authentication, leave it as `client_secret_basic`
@@ -190,9 +190,13 @@ Content-Length: 357
 client_id=demoClient&code=<authorization_code>&code_verifier=DdIlYe3RQ8G2a1NNOP114dTNKjch~h4Vb_gtDbIPl5T_6WCVox6hfuL_-_A-Db55&grant_type=authorization_code&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fdemo-callback&code_challenge_method=S256
 ```
 
+## Considerations
+This sample doesn't fo
+
+
 ## Disclaimer
 We have tested and used this application, but we do not accept any responsibility for potential 
 security vulnerabilities or problems that may arise. Please use it only after conducting your own 
 security tests and validating all flows. In particular, the token exchange phase may not have been 
 thoroughly tested - ensure that you perform necessary testing yourself. 
-If you have an application requiring high security and need access to the source code, please contact us.
+If you have an application requiring high security and need access to the source code, please [contact us](mailto:info@bivektor.com).
