@@ -191,7 +191,14 @@ client_id=demoClient&code=<authorization_code>&code_verifier=DdIlYe3RQ8G2a1NNOP1
 ```
 
 ## Considerations
-This sample doesn't fo
+This sample doesn't show detailed exception handling scenarios. Basically, we should try to prevent
+user from getting stuck at the proxy server in case of an exception. Proxy server should redirect
+the user back, possibly with an error core whenever possible and show a friendly error message
+if redirection is not possible. 
+
+Also, note that, the proxy server doesn't support oauth2 authentication flows except 
+the standard authorization_code grant. Upstream client applications communicate with the target 
+authorization server directly once they get the access/refresh tokens from the proxy server.
 
 
 ## Disclaimer
