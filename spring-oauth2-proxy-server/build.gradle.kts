@@ -9,6 +9,7 @@ group = "com.bivektor.samples.spring.security.oauth2"
 version = "1.0-SNAPSHOT"
 
 repositories {
+  mavenLocal()
   mavenCentral()
 }
 
@@ -16,7 +17,7 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-web")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-authorization-server")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
-  implementation("com.bivektor.security.oauth2:bivektor-spring-oauth2-auth-server-proxy:1.0.2")
+  implementation("com.bivektor.security.oauth2:bivektor-spring-oauth2-auth-server-proxy:1.1.0")
 }
 
 java {

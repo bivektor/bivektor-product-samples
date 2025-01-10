@@ -1,62 +1,54 @@
 package com.bivektor.samples.spring.security.oauth2.config;
 
-import com.bivektor.security.oauth2.server.proxy.DefaultProxyOAuth2UserService;
-import com.bivektor.security.oauth2.server.proxy.ProxyAccessTokenResponseClient;
+import static org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter.DEFAULT_AUTHORIZATION_REQUEST_BASE_URI;
+
+import com.bivektor.security.oauth2.server.proxy.ProxyAuthenticationFailureHandler;
 import com.bivektor.security.oauth2.server.proxy.ProxyAuthenticationSuccessHandler;
 import com.bivektor.security.oauth2.server.proxy.ProxyAuthorizationManager;
+import com.bivektor.security.oauth2.server.proxy.ProxyOAuth2AuthorizationRequestRepository;
 import com.bivektor.security.oauth2.server.proxy.ProxyOAuth2AuthorizationRequestResolver;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationEventPublisher;
+import com.bivektor.security.oauth2.server.proxy.config.ProxyOAuth2LoginPostProcessor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
 @Configuration
 public class OAuth2ClientConfig {
 
-  private static final String AUTHORIZATION_ENDPOINT_BASE_URL = "/oauth2/authorization";
+  private static final String LOGIN_PAGE = "/login";
+
 
   @Bean
-  public DefaultProxyOAuth2UserService oAuth2UserService() {
-    return new DefaultProxyOAuth2UserService(new DefaultOAuth2UserService());
-  }
-
-  @Bean
-  public OidcUserService oidcUserService() {
-    var oidcUserService = new OidcUserService();
-    oidcUserService.setOauth2UserService(oAuth2UserService());
-    return oidcUserService;
+  public ProxyOAuth2AuthorizationRequestRepository oauth2AuthorizationRequestRepository() {
+    return ProxyOAuth2AuthorizationRequestRepository.ofHttpSession();
   }
 
   @Bean
   public ProxyOAuth2AuthorizationRequestResolver oAuth2AuthorizationRequestResolver(
       ClientRegistrationRepository clientRegistrationRepository,
-      ProxyAuthorizationManager proxyAuthorizationManager,
-      ApplicationEventPublisher applicationEventPublisher
+      ProxyAuthorizationManager proxyAuthorizationManager
   ) {
     var defaultResolver = new DefaultOAuth2AuthorizationRequestResolver(
         clientRegistrationRepository,
-        AUTHORIZATION_ENDPOINT_BASE_URL
+        DEFAULT_AUTHORIZATION_REQUEST_BASE_URI
     );
 
-    return new ProxyOAuth2AuthorizationRequestResolver(
+    var result = new ProxyOAuth2AuthorizationRequestResolver(
         defaultResolver,
-        proxyAuthorizationManager,
-        applicationEventPublisher
+        proxyAuthorizationManager
     );
+
+    // Set this value as false to force OAuth2 login to work only for proxy requests.
+    result.setNonProxyRequestsAllowed(true);
+
+    return result;
   }
 
   @Bean
@@ -73,14 +65,19 @@ public class OAuth2ClientConfig {
   }
 
   @Bean
+  public ProxyAuthenticationFailureHandler proxyAuthenticationFailureHandler(
+      ProxyAuthorizationManager proxyAuthorizationManager
+  ) {
+    return new ProxyAuthenticationFailureHandler(proxyAuthorizationManager, LOGIN_PAGE + "?error");
+  }
+
+  @Bean
   @Order(2)
   public SecurityFilterChain oauth2ClientSecurityFilterChain(
       HttpSecurity http,
-      @Qualifier("proxyAuthenticationSuccessHandler")
-      AuthenticationSuccessHandler proxyAuthenticationSuccessHandler,
-      OAuth2AuthorizationRequestResolver authorizationRequestResolver,
-      OAuth2UserService<OAuth2UserRequest, OAuth2User> oAuth2UserService,
-      OidcUserService oidcUserService
+      ProxyAuthenticationSuccessHandler oauth2LoginSuccessHandler,
+      ProxyAuthenticationFailureHandler oauth2LoginFailureHandler,
+      OAuth2AuthorizationRequestResolver authorizationRequestResolver
   ) throws Exception {
     http.authorizeHttpRequests(authorize ->
         authorize
@@ -89,27 +86,20 @@ public class OAuth2ClientConfig {
     );
 
     http.oauth2Login(login -> {
+      login.withObjectPostProcessor(new ProxyOAuth2LoginPostProcessor());
 
       // Use a custom login page, because we don't want the default login page to list
       // all possible clients to end users of the applications that use us as a proxy
       // You may consider protecting login page by IP address or other means so that only known
       // users access it
-      login.loginPage("/login");
-
-      login.successHandler(proxyAuthenticationSuccessHandler);
+      login.loginPage(LOGIN_PAGE);
+      login.successHandler(oauth2LoginSuccessHandler);
+      login.failureHandler(oauth2LoginFailureHandler);
 
       login.authorizationEndpoint(endpoint -> {
-        endpoint.baseUri(AUTHORIZATION_ENDPOINT_BASE_URL);
+        endpoint.baseUri(DEFAULT_AUTHORIZATION_REQUEST_BASE_URI);
         endpoint.authorizationRequestResolver(authorizationRequestResolver);
-      });
-
-      login.tokenEndpoint(endpoint ->
-          endpoint.accessTokenResponseClient(new ProxyAccessTokenResponseClient())
-      );
-
-      login.userInfoEndpoint(endpoint -> {
-        endpoint.userService(oAuth2UserService);
-        endpoint.oidcUserService(oidcUserService);
+        endpoint.authorizationRequestRepository(oauth2AuthorizationRequestRepository());
       });
     });
 

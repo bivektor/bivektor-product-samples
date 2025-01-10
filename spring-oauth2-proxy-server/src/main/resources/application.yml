@@ -34,4 +34,5 @@ spring:
                 - client_secret_basic
                 - none
               redirect-uris:
-                - http://localhost:8080/demo-callback
+                # Dummy URL. It doesn't have to be running. We just use it to get the authorization code from the URL
+                - http://localhost:8888/demo-callback

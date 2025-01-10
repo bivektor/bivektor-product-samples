@@ -1,6 +1,5 @@
 package com.bivektor.samples.spring.security.oauth2.config;
 
-import com.bivektor.security.oauth2.server.proxy.DelegatingProxyOAuth2AuthorizationService;
 import com.bivektor.security.oauth2.server.proxy.ProxyAuthorizationManager;
 import com.bivektor.security.oauth2.server.proxy.ProxyOAuth2AuthorizationCodeAuthenticationProvider;
 import org.springframework.context.annotation.Bean;
@@ -10,26 +9,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration(proxyBeanMethods = false)
 public class OAuth2AuthorizationServerConfig {
-
-  @Bean
-  public DelegatingProxyOAuth2AuthorizationService oAuth2AuthorizationService(
-      ProxyAuthorizationManager proxyAuthorizationManager
-  ) {
-    // Change the default authorization service if you want to store authorization data in a different place
-    var defaultAuthorizationService = new InMemoryOAuth2AuthorizationService();
-
-    return DelegatingProxyOAuth2AuthorizationService.of(
-        defaultAuthorizationService,
-        proxyAuthorizationManager
-    );
-  }
 
   @Bean
   @Order(0)
