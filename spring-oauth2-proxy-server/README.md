@@ -12,14 +12,15 @@ Therefore, all logins occur through this single client. This server acts as an O
 
 2. **Redirect and Temporary Storage**: The proxy temporarily stores application's authorization
 request and handles redirect to the target authorization server. Upon successful authentication,
-it temporarily stores the authorization information (access and refresh tokens) obtained from 
-the OAuth2 server.
+generates an OAuth2 Authorization code and stores it along with the authorization
+information (access and refresh tokens) obtained from the OAuth2 server.
 
 
 3. **Redirect to Originating Application**: The proxy identifies the application that 
 initiated the login and redirects the user back to it.
 
-4. **Token Exchange**: The application then contacts the proxy's token endpoint to exchange
+
+3. **Token Exchange**: The application then contacts the proxy's token endpoint to exchange
 an authorization code or grant for the actual access and refresh tokens initially obtained
 by the proxy.
 
@@ -36,12 +37,12 @@ authentication with the target authorization server
 
 **Bivektor Spring OAuth2 Proxy**: Our internal components that coordinate the proxy
 authentication and authorization. Note that source code is not provided for those components.
-Please contact us via [email](mailto:info@bivektor.com) in case you need support or the source code for legal
-reasons.
+Please contact us via [email](mailto:info@bivektor.com) in case you need support or the source code.
 
 For local testing, we provided a docker compose file at the project root for running a
 local [KeyCloak](https://www.keycloak.org/) server at HTTP 8181 port. Execute the command
-`docker compose up` to start the server and `docker compose down` for stopping it.
+`docker compose up` to start the server and `docker compose down` for stopping it. KeyCloak admin credentials
+are `admin` / `admin`
 
 ### Proxy Authorization Code Authentication Flow
 
@@ -51,52 +52,54 @@ is the **registration ID** of the client that represents the target authorizatio
 configured under the `spring.security.oauth2.client` configuration property. 
 For this sample, this value is `keycloak` as we have only one login client configured. `$sourceClientId`
 is the OAuth2 Client ID (not the registration ID) of the client that represents
-the application that is logging through the proxy. These clients are represented by the `RegisteredClient`
+the application that is logging through the proxy. Such clients are represented by the `RegisteredClient`
 class in Spring Authorization Server. We configure them under the `spring.security.oauth2.authorizationserver.client`
-configuration key. Again for this example, we have only one RegisteredClient whose client ID is 
-`demoClient`. In addition to its client id, the client can send PKCE parameters as well. See 
+configuration key. Again for this example, we have only one `RegisteredClient` whose client ID is 
+`demoClient`. In addition to its client id, the client can send PKCE parameters as well which is explained below. 
 
 
 2. Proxy request is detected, validated and stored. Http request is redirected to the target authorization server
 
 
-3. Upon successful authentication, proxy server creates a new random authorization code and 
-redirects back to the application that initiated the login.
+3. Upon successful authentication, proxy server creates a new random Authorization Code and 
+redirects back to the application that initiated the login. Authorization Code generation is done by Spring
+Authorization Server's default algorithm.
 
 
 4. Client application executes the token exchange process by posting to the Spring Authorization Server's
 token endpoint (`/oauth2/token` by default) and obtains the access and refresh token previously
-provided by the target authorization server to the proxy server. Note that,
-all standard authentication providers configured by Spring's default endpoint configuration apply
-here in accordance with the oauth2 standards such as client authentication through `client_secret_basic`
+provided by the target authorization server to the proxy server. Proxy server supports proxy and non-proxy
+authorizations such that, non-proxy requests are handled by the default authorization server logic where
+new tokens are generated while proxy requests return the tokens retrieved from the target authorization
+server. Note that, all standard authentication providers configured by Spring's default endpoint configuration
+apply here in accordance with the oauth2 standards such as client authentication through `client_secret_basic`
 or `client_secret_post` methods as well as `code_challenge` verification.
 
 
-5. Once the application obtains the access token, all communication except the refresh token flow
+5. Once the application obtains the access token, all communication except for the refresh token flow
 happens between the application and the target authorization server.
 
 ### Persistence of Authorization Data
 Generated authorization codes and associated access and refresh tokens are by default stored in 
-an in-memory repository, and they are removed after the client application successfully exchanges 
-the code for the access and refresh tokens. This is often the preferred behavior as there is no
-reason to keep this data for long. To customize this behavior, probably for auditing reasons,
-see javadoc for `ProxyOAuth2AuthorizationCodeAuthenticationProvider`
+an in-memory repository. It is also possible to store them in a RDBMS using `JdbcOAuth2AuthorizationService`
+Note that authorization codes are invalidated after first use.
 
 ### Authorization Code Lifetime
 Authorization code lifetime is configured by the `AuthorizationCodeTimeToLive` setting in 
 `RegisteredClient`'s `TokenSettings`. If no value is configured for the client, then it is set
-to 5 minutes by default.
+to 5 minutes by default. This setting can be set in application configuration file.
 
-### Proxy Login Access Validation
+### Proxy Authorization Request Validation
 Proxy server allows you to configure which upstream proxy application client (RegisteredClient) is allowed
-to which login client. For instance, you can have one application to proxy login via your Google Login
+to which target login client. For instance, you can have one application to proxy login via your Google Login
 client while another application is allowed to Facebook login or none. This validation is enabled
 by default and configured by the `RegisteredClient`'s `ClientSettings` setting 
 named `bivektor-proxy-allowed-client-ids`. The setting should contain a comma separated list of 
-allowed OAuth2 Login client ids.  To allow all login clients, set this value to `*`
+allowed OAuth2 Login client ids.  To allow all login clients for a specific RegisteredClient, set this value to `*`
 
-Note that, there is no standard way to configure this via `application.yml`, thus you have to set 
-it programmatically. Or, you can disable the validation entirely as we are doing in this demo.
+Note that, such settings are not configurable via application config files. You have to set 
+them programmatically using `RegisteredClientRepository`. For demo purposes, this validation is entirely
+disabled in this sample and indicated with a comment in the code.
 
 ### PKCE Authentication 
 Proxy server supports PKCE authentication both between the client application and the proxy 
@@ -109,19 +112,16 @@ Login components via an auto-generated `code challenge` and `code verifier` pair
 * **Between Client Application and Proxy Server:** Verification happens at the proxy server without
 contact with the target server. Client application sends the `code_challenge` 
 and `code_challenge_method` parameters along with the `client_id` parameter 
-in the login request. Currently, Spring supports only the `S256` challenge method. Note that Spring
-OAuth2 Client doesn't support PKCE and Client Credentials authentication at the same time. That's 
-probably because that is non-standard based on OAuth2 specification as PKCE authentication is
-mainly for **"public"** clients which cannot ensure confidentiality of their credentials. Thus, 
-it makes no sense for such clients to send their credentials.
+in the login request. Note that Spring OAuth2 Client doesn't support PKCE and Client Credentials
+authentication at the same time. See [our sample here](https://github.com/bivektor/bivektor-product-samples/blob/main/spring-oauth2-client/combined-pkce-with-client-credentials/README.md) for a detailed discussion and a workaround.
 
 
 **PKCE together with Client Authentication**: Spring authorization server's token endpoint
 supports both PKCE and client credentials authentication at the same time. If code_challenge 
 was sent in the login request, then during token exchange, PKCE authentication is required. 
 But client can still send its client credentials and the server validates client credentials as well.
-Note that this is not an OAuth2 standard as described above. Actually KeyCloak server behaves
-the same way when both Client and PKCE Authentication are enabled for a specific client. 
+Note that this is not an OAuth2 standard as described above. KeyCloak server behaves
+the same way when both Client Authentication and PKCE are enabled for a specific client. 
 
 ## Running the Project
 
