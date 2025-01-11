@@ -205,16 +205,27 @@ server handles these failures, additional testing is needed for errors that may 
 processing or during token exchange. The primary goal is to prevent users from getting stuck at the proxy 
 server during any error scenario.
 
+
 * The proxy server currently supports only the standard OAuth2 authorization code and refresh token flows. 
 Other authentication flows are not yet implemented.
 
+
 * RP-Initiated logout functionality is planned for the first stable release but is not currently supported.
+
 
 * OpenID Connect support is experimental but has been tested for common scenarios. 
 Note that the **User Info** endpoint does not work as expected since the access token belongs to the 
 target authorization server. Applications must communicate directly with the target server to retrieve 
 user information. Additionally, the refresh token flow does not return a new ID token. 
 Applications must re-authenticate to obtain a new ID token after expiration.
+
+
+* The proxy server is built on Spring Security Authorization Server and currently offers limited enterprise auditing capabilities. It emits three application events:
+  - **ProxyRequestResolvedEvent**: When a proxy request is detected and redirected to the target server
+  - **ProxyAuthenticationSuccessEvent**: When authentication succeeds and redirects back to the application
+  - **ProxyAuthenticationFailureEvent**: When the authorization server returns error details to the proxy server before forwarding to the client application
+
+  Additional details are available in DEBUG logs. We plan to enhance auditing capabilities in future releases without requiring customization of core components.
 
 ## Disclaimer
 Proxy server strives to adhere to OAuth2 standards thanks to Spring Security OAuth2 libraries, but
