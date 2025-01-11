@@ -59,15 +59,21 @@ configuration key. Again for this example, we have only one RegisteredClient who
 
 2. Proxy request is detected, validated and stored. Http request is redirected to the target authorization server
 
+
 3. Upon successful authentication, proxy server creates a new random authorization code and 
 redirects back to the application that initiated the login.
+
 
 4. Client application executes the token exchange process by posting to the Spring Authorization Server's
 token endpoint (`/oauth2/token` by default) and obtains the access and refresh token previously
 provided by the target authorization server to the proxy server. Note that,
 all standard authentication providers configured by Spring's default endpoint configuration apply
-here in accordance with the oauth2 standards such as client authentication through client_secret_basic
-or client_secret_post methods as well as code_challenge verification.
+here in accordance with the oauth2 standards such as client authentication through `client_secret_basic`
+or `client_secret_post` methods as well as `code_challenge` verification.
+
+
+5. Once the application obtains the access token, all communication except the refresh token flow
+happens between the application and the target authorization server.
 
 ### Persistence of Authorization Data
 Generated authorization codes and associated access and refresh tokens are by default stored in 
@@ -193,16 +199,22 @@ Content-Length: 357
 client_id=demoClient&code=<authorization_code>&code_verifier=DdIlYe3RQ8G2a1NNOP114dTNKjch~h4Vb_gtDbIPl5T_6WCVox6hfuL_-_A-Db55&grant_type=authorization_code&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Fdemo-callback&code_challenge_method=S256
 ```
 
-## Considerations
-This sample doesn't show detailed exception handling scenarios. Basically, we should try to prevent
-user from getting stuck at the proxy server in case of an exception. Proxy server handles OAuth2 
-authentication failures but other errors that may occur before authentication processing are not
-handled.
+## Known Limitations
+* Exception handling is currently limited to basic OAuth2 authentication failures. While the proxy 
+server handles these failures, additional testing is needed for errors that may occur before authentication 
+processing or during token exchange. The primary goal is to prevent users from getting stuck at the proxy 
+server during any error scenario.
 
-Also, note that, the proxy server doesn't support oauth2 authentication flows except 
-the standard authorization_code grant. Upstream client applications communicate with the target 
-authorization server directly once they get the access/refresh tokens from the proxy server.
+* The proxy server currently supports only the standard OAuth2 authorization code and refresh token flows. 
+Other authentication flows are not yet implemented.
 
+* RP-Initiated logout functionality is planned for the first stable release but is not currently supported.
+
+* OpenID Connect support is experimental but has been tested for common scenarios. 
+Note that the **User Info** endpoint does not work as expected since the access token belongs to the 
+target authorization server. Applications must communicate directly with the target server to retrieve 
+user information. Additionally, the refresh token flow does not return a new ID token. 
+Applications must re-authenticate to obtain a new ID token after expiration.
 
 ## Disclaimer
 We do not accept any responsibility for potential security vulnerabilities or problems that may arise. Please use it only after conducting your own security tests and validating all flows. If you have an application requiring high security and 

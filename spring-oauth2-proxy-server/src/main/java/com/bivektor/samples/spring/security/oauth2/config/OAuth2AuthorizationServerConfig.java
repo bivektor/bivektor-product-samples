@@ -1,7 +1,6 @@
 package com.bivektor.samples.spring.security.oauth2.config;
 
-import com.bivektor.security.oauth2.server.proxy.ProxyAuthorizationManager;
-import com.bivektor.security.oauth2.server.proxy.ProxyOAuth2AuthorizationCodeAuthenticationProvider;
+import com.bivektor.spring.security.oauth2.proxy.config.ProxyOAuth2AuthorizationServerConfigurerCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -9,7 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -20,8 +18,7 @@ public class OAuth2AuthorizationServerConfig {
   @Order(0)
   public SecurityFilterChain authorizationServerSecurityFilterChain(
       HttpSecurity http,
-      ProxyAuthorizationManager proxyAuthorizationManager,
-      OAuth2AuthorizationService oAuth2AuthorizationService
+      ProxyOAuth2AuthorizationServerConfigurerCustomizer customizer
   ) throws Exception {
 
     var authorizationServerConfigurer = OAuth2AuthorizationServerConfigurer.authorizationServer();
@@ -29,16 +26,9 @@ public class OAuth2AuthorizationServerConfig {
     http.securityMatcher(authorizationServerConfigurer.getEndpointsMatcher());
 
     http.with(authorizationServerConfigurer, server -> {
+      // Enable OpenID Connect 1.0
       server.oidc(Customizer.withDefaults());
-      server.tokenEndpoint(endpoint -> endpoint.authenticationProviders(providers -> {
-        var proxyAuthorizationCodeAuthenticationManager =
-            new ProxyOAuth2AuthorizationCodeAuthenticationProvider(
-                oAuth2AuthorizationService, proxyAuthorizationManager
-            );
-
-        // Add proxy authorization manager before Spring's default OAuth2AuthorizationCodeAuthenticationProvider
-        providers.add(0, proxyAuthorizationCodeAuthenticationManager);
-      }));
+      server.tokenEndpoint(customizer::configureTokenEndpoint);
     });
 
     http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());

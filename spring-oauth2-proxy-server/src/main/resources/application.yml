@@ -28,8 +28,10 @@ spring:
               client-id: demoClient
               client-secret: "{noop}demo"
               client-name: Demo Client
+              scopes: openid,profile,email
               authorization-grant-types:
                 - authorization_code
+                - refresh_token
               client-authentication-methods:
                 - client_secret_basic
                 - none
