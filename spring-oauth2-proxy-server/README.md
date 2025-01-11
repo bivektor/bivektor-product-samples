@@ -217,5 +217,8 @@ user information. Additionally, the refresh token flow does not return a new ID 
 Applications must re-authenticate to obtain a new ID token after expiration.
 
 ## Disclaimer
-We do not accept any responsibility for potential security vulnerabilities or problems that may arise. Please use it only after conducting your own security tests and validating all flows. If you have an application requiring high security and 
-need access to the source code, please [contact us](mailto:info@bivektor.com).
+Proxy server strives to adhere to OAuth2 standards thanks to Spring Security OAuth2 libraries, but
+we do not accept any responsibility for potential security vulnerabilities or problems that may arise. 
+Please use it only after conducting your own security tests and validating all flows. 
+If you have an application requiring high security and need support or access to the source code, 
+please [contact us](mailto:info@bivektor.com).
