@@ -1,4 +1,4 @@
-# Bivektor Spring OAuth2 Proxy Login Server
+# Bivektor Spring OAuth2 Login Proxy Server (Beta)
 
 
 ## Use Case
