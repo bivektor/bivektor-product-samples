@@ -1,6 +1,7 @@
 package com.bivektor.samples.spring.security.oauth2.config;
 
 import com.bivektor.spring.security.oauth2.proxy.config.ProxyOAuth2AuthorizationServerConfigurerCustomizer;
+import com.bivektor.spring.security.oauth2.proxy.server.DefaultProxyAuthorizationManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -8,11 +9,35 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
+import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration(proxyBeanMethods = false)
 public class OAuth2AuthorizationServerConfiguration {
+
+  @Bean
+  public InMemoryOAuth2AuthorizationService oAuth2AuthorizationService() {
+    // For demo purpose, storing OAuth2Authorization objects in memory
+    return new InMemoryOAuth2AuthorizationService();
+  }
+
+  @Bean
+  public DefaultProxyAuthorizationManager proxyAuthorizationManager(
+      RegisteredClientRepository registeredClientRepository,
+      AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository,
+      OAuth2AuthorizationService oAuth2AuthorizationService
+  ) {
+    return new DefaultProxyAuthorizationManager(
+        registeredClientRepository,
+        authorizationRequestRepository,
+        oAuth2AuthorizationService
+    );
+  }
 
   @Bean
   @Order(0)

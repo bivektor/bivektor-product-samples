@@ -2,16 +2,15 @@ package com.bivektor.samples.spring.security.oauth2.config;
 
 import static org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter.DEFAULT_AUTHORIZATION_REQUEST_BASE_URI;
 
-import com.bivektor.spring.security.oauth2.proxy.ProxyLoginResultAuthorizer;
-import com.bivektor.spring.security.oauth2.proxy.ProxyRequestLoader;
-import com.bivektor.spring.security.oauth2.proxy.client.validation.CompositeProxyRequestValidator;
-import com.bivektor.spring.security.oauth2.proxy.client.validation.RedirectUriProxyRequestValidator;
-import com.bivektor.spring.security.oauth2.proxy.server.DefaultProxyAuthorizationManager;
-import com.bivektor.spring.security.oauth2.proxy.client.ProxyAuthenticationFailureHandler;
-import com.bivektor.spring.security.oauth2.proxy.client.ProxyAuthenticationSuccessHandler;
 import com.bivektor.spring.security.oauth2.proxy.ProxyAuthorizationManager;
 import com.bivektor.spring.security.oauth2.proxy.ProxyAuthorizationRequestRepository;
+import com.bivektor.spring.security.oauth2.proxy.ProxyLoginResultAuthorizer;
+import com.bivektor.spring.security.oauth2.proxy.ProxyRequestLoader;
+import com.bivektor.spring.security.oauth2.proxy.client.ProxyAuthenticationFailureHandler;
+import com.bivektor.spring.security.oauth2.proxy.client.ProxyAuthenticationSuccessHandler;
 import com.bivektor.spring.security.oauth2.proxy.client.ProxyOAuth2AuthorizationRequestResolver;
+import com.bivektor.spring.security.oauth2.proxy.client.validation.CompositeProxyRequestValidator;
+import com.bivektor.spring.security.oauth2.proxy.client.validation.RedirectUriProxyRequestValidator;
 import com.bivektor.spring.security.oauth2.proxy.config.ProxyBeansConfiguration;
 import com.bivektor.spring.security.oauth2.proxy.config.ProxyOAuth2LoginPostProcessor;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -23,49 +22,29 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
-import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
-import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationService;
-import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
-@Import(ProxyBeansConfiguration.class)
+@Import(ProxyBeansConfiguration.class) // This import is necessary until we have a more flexible configuration logic
 public class DefaultSecurityConfiguration {
 
   private static final String LOGIN_PAGE = "/login";
 
+  // JwtEncoder bean is required for proxy components
   @Bean
   public JwtEncoder jwtEncoder(JWKSource<SecurityContext> jwkSource) {
     return new NimbusJwtEncoder(jwkSource);
   }
 
   @Bean
-  public InMemoryOAuth2AuthorizationService oAuth2AuthorizationService() {
-    return new InMemoryOAuth2AuthorizationService();
-  }
-
-  @Bean
-  public DefaultProxyAuthorizationManager proxyAuthorizationManager(
-      RegisteredClientRepository registeredClientRepository,
-      AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository,
-      OAuth2AuthorizationService oAuth2AuthorizationService
-  ) {
-    return new DefaultProxyAuthorizationManager(
-        registeredClientRepository,
-        authorizationRequestRepository,
-        oAuth2AuthorizationService
-    );
-  }
-
-  @Bean
   public ProxyAuthorizationRequestRepository oauth2AuthorizationRequestRepository() {
+    // Store OAuth2AuthorizationRequest objects in Http session
     return ProxyAuthorizationRequestRepository.ofHttpSession();
   }
 
@@ -74,6 +53,7 @@ public class DefaultSecurityConfiguration {
       ClientRegistrationRepository clientRegistrationRepository,
       RegisteredClientRepository registeredClientRepository
   ) {
+
     var defaultResolver = new DefaultOAuth2AuthorizationRequestResolver(
         clientRegistrationRepository,
         DEFAULT_AUTHORIZATION_REQUEST_BASE_URI
@@ -84,10 +64,9 @@ public class DefaultSecurityConfiguration {
     // Set this value as false to force OAuth2 login to work only for proxy requests.
     result.setNonProxyRequestsAllowed(true);
 
-    // Default validator checks if a registered client is allowed to log in via a specific login client
-    // For demo purposes, we skip that validation and just keep the redirect uri validation which
-    // verifies that the redirect_uri parameter matches one of the valid redirect uris of the client
-    // Comment this line to use the default validator with allowed client checks
+    // For demo purposes, setting a custom validator to keep only the redirect uri validation but
+    // skip allowed clients validation which validates if the proxying client has proxy login access
+    // to a specific login client. Uncomment this to use default validator
     result.setProxyRequestValidator(new CompositeProxyRequestValidator(
         List.of(new RedirectUriProxyRequestValidator())
     ));
