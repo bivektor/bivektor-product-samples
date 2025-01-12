@@ -12,7 +12,7 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration(proxyBeanMethods = false)
-public class OAuth2AuthorizationServerConfig {
+public class OAuth2AuthorizationServerConfiguration {
 
   @Bean
   @Order(0)

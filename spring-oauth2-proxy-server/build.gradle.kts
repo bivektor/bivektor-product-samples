@@ -17,7 +17,7 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-web")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-authorization-server")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
-  implementation("com.bivektor.security.oauth2:bivektor-spring-oauth2-auth-server-proxy:1.2.0-beta")
+  implementation("com.bivektor.security.oauth2:bivektor-spring-oauth2-auth-server-proxy:1.3.0-beta")
 }
 
 java {
