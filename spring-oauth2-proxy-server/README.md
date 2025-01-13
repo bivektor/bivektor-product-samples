@@ -71,7 +71,8 @@ token endpoint (`/oauth2/token` by default) and obtains the access and refresh t
 provided by the target authorization server to the proxy server. Proxy server supports proxy and non-proxy
 authorizations such that, non-proxy requests are handled by the default authorization server logic where
 new tokens are generated while proxy requests return the tokens retrieved from the target authorization
-server. Note that, all standard authentication providers configured by Spring's default endpoint configuration
+server. For proxy logins, these tokens are immediately deleted after this operation succeeds.
+Note that, all standard authentication providers configured by Spring's default endpoint configuration
 apply here in accordance with the oauth2 standards such as client authentication through `client_secret_basic`
 or `client_secret_post` methods as well as `code_challenge` verification.
 
@@ -82,7 +83,9 @@ happens between the application and the target authorization server.
 ### Persistence of Authorization Data
 Generated authorization codes and associated access and refresh tokens are by default stored in 
 an in-memory repository. It is also possible to store them in a RDBMS using `JdbcOAuth2AuthorizationService`
-Note that authorization codes are invalidated after first use.
+Note that authorization codes are invalidated after first use and associated access & refresh tokens
+are deleted. Authorization server still supports refresh_token flow by encoding special information into
+the returned refresh token.
 
 ### Authorization Code Lifetime
 Authorization code lifetime is configured by the `AuthorizationCodeTimeToLive` setting in 
@@ -154,7 +157,10 @@ authentication method `none`.
 ### Standard OAuth Login
 
 #### Login URL
-http://localhost:8080/oauth2/authorization/keycloak?client_id=demoClient&redirect_uri=http://localhost:8888/demo-callback
+http://localhost:8080/oauth2/authorization/keycloak?response_type=code&client_id=demoClient&redirect_uri=http://localhost:8888/demo-callback
+
+Redirect uri http://localhost:8888 is just a dummy address which doesn't have to be working. We'll just
+copy the `code` parameter from the URL after authentication.
 
 #### Token Exchange Request
 ```
@@ -210,20 +216,17 @@ server during any error scenario.
 Other authentication flows are not yet implemented.
 
 
-* RP-Initiated logout functionality is planned for the first stable release but is not currently supported.
-
-
 * OpenID Connect support is experimental but has been tested for common scenarios. 
 Note that the **User Info** endpoint does not work as expected since the access token belongs to the 
 target authorization server. Applications must communicate directly with the target server to retrieve 
-user information. Additionally, the refresh token flow does not return a new ID token. 
-Applications must re-authenticate to obtain a new ID token after expiration.
+user information. RP-Initiated logout functionality is planned for the first stable release but is not currently supported.
 
 
 * The proxy server is built on Spring Security Authorization Server and currently offers limited enterprise auditing capabilities. It emits three application events:
   - **ProxyRequestResolvedEvent**: When a proxy request is detected and redirected to the target server
   - **ProxyAuthenticationSuccessEvent**: When authentication succeeds and redirects back to the application
   - **ProxyAuthenticationFailureEvent**: When the authorization server returns error details to the proxy server before forwarding to the client application
+  - **ProxyLoginAuthorizationCreatedEvent**: After the authorization code is created and stored
 
   Additional details are available in DEBUG logs. We plan to enhance auditing capabilities in future releases without requiring customization of core components.
 
