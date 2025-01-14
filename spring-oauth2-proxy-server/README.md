@@ -116,7 +116,11 @@ Login components via an auto-generated `code challenge` and `code verifier` pair
 contact with the target server. Client application sends the `code_challenge` 
 and `code_challenge_method` parameters along with the `client_id` parameter 
 in the login request. Note that Spring OAuth2 Client doesn't support PKCE and Client Credentials
-authentication at the same time. See [our sample here](https://github.com/bivektor/bivektor-product-samples/blob/main/spring-oauth2-client/combined-pkce-with-client-credentials/README.md) for a detailed discussion and a workaround.
+authentication at the same time. See [our sample here](https://github.com/bivektor/bivektor-product-samples/blob/main/spring-oauth2-client/combined-pkce-with-client-credentials/README.md) for a detailed discussion and a workaround. Note that, using that approach with the proxy
+server requires a custom `ProxyOAuth2AuthorizationRequestResolver.requestBuilderCustomizer` to keep custom scopes
+in the returned authorization request before it is passed to the PKCE handling authorization resolver. Otherwise,
+returned request would contain only the scopes requested by the proxy client application losing the default
+scopes configured for the `ClientRegistration` object 
 
 
 **PKCE together with Client Authentication**: Spring authorization server's token endpoint
