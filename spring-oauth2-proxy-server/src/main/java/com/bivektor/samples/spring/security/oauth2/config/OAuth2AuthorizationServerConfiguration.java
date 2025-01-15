@@ -1,6 +1,6 @@
 package com.bivektor.samples.spring.security.oauth2.config;
 
-import com.bivektor.spring.security.oauth2.proxy.config.ProxyOAuth2AuthorizationServerConfigurerCustomizer;
+import com.bivektor.spring.security.oauth2.proxy.server.config.ProxyOAuth2AuthorizationServerConfigurerCustomizer;
 import com.bivektor.spring.security.oauth2.proxy.server.DefaultProxyAuthorizationManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

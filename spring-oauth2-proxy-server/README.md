@@ -2,16 +2,23 @@
 
 
 ## Use Case
-In a network, multiple applications need to log in through a single OAuth2 server. However, this 
-server only allows one client to be defined for all these applications.
+In many enterprise and government networks, multiple applications need to authenticate users through
+a central OAuth2 authorization server. However, due to strict governance policies and time-consuming
+legislative processes, creating and managing separate OAuth2 clients for each application becomes
+impractical. As a result, all applications must share a single OAuth2 client registration.
 
-Therefore, all logins occur through this single client. This server acts as an OAuth2 proxy:
+OAuth2 proxy server addresses this challenge by acting as an intermediary between client
+applications and the OAuth2 authorization server. It maps incoming authentication requests from
+multiple applications to the single shared client, managing the complete OAuth2 flow between the
+applications and the authorization server.
 
-1. **Initial Login**: Each application initiates the login process through the proxy.
+1. **Initial Login**: Each application initiates the `authorization_code` login flow through the proxy.
+This is simply a redirection from the application's login page to the proxy server's login page
+for the specific authorization server.
 
 
 2. **Redirect and Temporary Storage**: The proxy temporarily stores application's authorization
-request and handles redirect to the target authorization server. Upon successful authentication,
+request and redirects to the target authorization server. Upon successful authentication,
 generates an OAuth2 Authorization code and stores it along with the authorization
 information (access and refresh tokens) obtained from the OAuth2 server.
 
@@ -28,16 +35,17 @@ This setup allows multiple applications to use a single OAuth2 client for login 
 maintaining separation between them and ensuring each application receives the correct tokens.
 
 ## Implementation
-Proxy server is a typical Spring Boot application with the following dependencies:  
+Proxy server is a typical Spring Boot application with the following main components:  
 
-**[Spring OAuth2 Client Login](https://docs.spring.io/spring-security/reference/servlet/oauth2/index.html#oauth2-client)**: Handles login with the target authorization server
+**[Spring OAuth2 Client Login](https://docs.spring.io/spring-security/reference/servlet/oauth2/index.html#oauth2-client)**: Handles login with the registered target authorization servers
 
-**[Spring OAuth2 Authorization Server](https://docs.spring.io/spring-authorization-server/reference/getting-started.html)**: Handles token exchange with the login client after
-authentication with the target authorization server
+**[Spring OAuth2 Authorization Server](https://docs.spring.io/spring-authorization-server/reference/getting-started.html)**: Handles token exchange with the registered 
+application clients after authentication with the target authorization server
 
 **Bivektor Spring OAuth2 Proxy**: Our internal components that coordinate the proxy
-authentication and authorization. Note that source code is not provided for those components.
-Please contact us via [email](mailto:info@bivektor.com) in case you need support or the source code.
+authentication and authorization. Note that these components are provided as compiled binaries.
+Please contact us at [bivektor.com](http://bivektor.com) or via [email](mailto:info@bivektor.com) in case you need 
+further support or access to the source code.
 
 For local testing, we provided a docker compose file at the project root for running a
 local [KeyCloak](https://www.keycloak.org/) server at HTTP 8181 port. Execute the command
@@ -66,26 +74,29 @@ redirects back to the application that initiated the login. Authorization Code g
 Authorization Server's default algorithm.
 
 
-4. Client application executes the token exchange process by posting to the Spring Authorization Server's
+4. Client application executes the token exchange flow by posting to the Spring Authorization Server's
 token endpoint (`/oauth2/token` by default) and obtains the access and refresh token previously
 provided by the target authorization server to the proxy server. Proxy server supports proxy and non-proxy
-authorizations such that, non-proxy requests are handled by the default authorization server logic where
-new tokens are generated while proxy requests return the tokens retrieved from the target authorization
-server. For proxy logins, these tokens are immediately deleted after this operation succeeds.
+authorizations such that, non-proxy authorizations are handled by the default authorization server logic where
+new tokens are generated while proxy authorizations return the tokens retrieved from the target authorization
+server. For proxy authorizations, these tokens are immediately deleted after the first successful token
+exchange.
 Note that, all standard authentication providers configured by Spring's default endpoint configuration
 apply here in accordance with the oauth2 standards such as client authentication through `client_secret_basic`
 or `client_secret_post` methods as well as `code_challenge` verification.
 
 
 5. Once the application obtains the access token, all communication except for the refresh token flow
-happens between the application and the target authorization server.
+happens between the application and the target authorization server. If the authorization server
+provided a refresh token, client application requests a new access token with the refresh token 
+from the proxy server. Proxy server obtains the access token from the authorization server
+and returns to the client application without storing the tokens.
 
 ### Persistence of Authorization Data
 Generated authorization codes and associated access and refresh tokens are by default stored in 
 an in-memory repository. It is also possible to store them in a RDBMS using `JdbcOAuth2AuthorizationService`
 Note that authorization codes are invalidated after first use and associated access & refresh tokens
-are deleted. Authorization server still supports refresh_token flow by encoding special information into
-the returned refresh token.
+are deleted.
 
 ### Authorization Code Lifetime
 Authorization code lifetime is configured by the `AuthorizationCodeTimeToLive` setting in 
@@ -93,16 +104,17 @@ Authorization code lifetime is configured by the `AuthorizationCodeTimeToLive` s
 to 5 minutes by default. This setting can be set in application configuration file.
 
 ### Proxy Authorization Request Validation
-Proxy server allows you to configure which upstream proxy application client (RegisteredClient) is allowed
-to which target login client. For instance, you can have one application to proxy login via your Google Login
-client while another application is allowed to Facebook login or none. This validation is enabled
+Proxy server allows you to configure which application client (RegisteredClient) is allowed
+to which authorization server client. For instance, you can have one application to 
+proxy log in via your Google Login client while another application is allowed to Facebook
+login or none. This validation is enabled
 by default and configured by the `RegisteredClient`'s `ClientSettings` setting 
 named `bivektor-proxy-allowed-client-ids`. The setting should contain a comma separated list of 
 allowed OAuth2 Login client ids.  To allow all login clients for a specific RegisteredClient, set this value to `*`
 
 Note that, such settings are not configurable via application config files. You have to set 
 them programmatically using `RegisteredClientRepository`. For demo purposes, this validation is entirely
-disabled in this sample and indicated with a comment in the code.
+disabled in this example project and indicated with a comment in the code.
 
 ### PKCE Authentication 
 Proxy server supports PKCE authentication both between the client application and the proxy 
@@ -216,17 +228,27 @@ processing or during token exchange. The primary goal is to prevent users from g
 server during any error scenario.
 
 
+* Token introspection endpoint currently doesn't work for proxy authorizations.
+
+
 * The proxy server currently supports only the standard OAuth2 authorization code and refresh token flows. 
 Other authentication flows are not yet implemented.
 
 
-* OpenID Connect support is experimental but has been tested for common scenarios. 
-Note that the **User Info** endpoint does not work as expected since the access token belongs to the 
-target authorization server. Applications must communicate directly with the target server to retrieve 
-user information. RP-Initiated logout functionality is planned for the first stable release but is not currently supported.
+* OpenID Connect support is experimental. ID tokens are generated by the proxy server including the 
+claims received from the authorization server. Thus, OpenID is supported only if the associated 
+authorization server returns an ID token during the initial login flow. 
+  * Currently, **User Info** endpoint does not work for proxy authorizations since the access tokens
+are not stored by the proxy server. Applications must communicate directly with the target server to retrieve 
+user information. While proxying such requests is possible with some customizations, we don't plan
+to support this feature. But we are considering an information endpoint that would return the OpenID 
+configuration information of the authorization server so that client applications don't have to
+predefine them.
 
+  * RP-Initiated logout functionality is planned for the first stable release but is not currently supported.
 
-* The proxy server is built on Spring Security Authorization Server and currently offers limited enterprise auditing capabilities. It emits three application events:
+* The proxy server currently offers some enterprise auditing capabilities through Spring application events 
+emitting four application events:
   - **ProxyRequestResolvedEvent**: When a proxy request is detected and redirected to the target server
   - **ProxyAuthenticationSuccessEvent**: When authentication succeeds and redirects back to the application
   - **ProxyAuthenticationFailureEvent**: When the authorization server returns error details to the proxy server before forwarding to the client application
