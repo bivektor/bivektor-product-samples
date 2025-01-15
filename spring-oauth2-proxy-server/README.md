@@ -44,7 +44,7 @@ application clients after authentication with the target authorization server
 
 **Bivektor Spring OAuth2 Proxy**: Our internal components that coordinate the proxy
 authentication and authorization. Note that these components are provided as compiled binaries.
-Please contact us at [bivektor.com](http://bivektor.com) or via [email](mailto:info@bivektor.com) in case you need 
+Please contact us on [bivektor.com](http://bivektor.com) or via [email](mailto:info@bivektor.com) in case you need 
 further support or access to the source code.
 
 For local testing, we provided a docker compose file at the project root for running a
