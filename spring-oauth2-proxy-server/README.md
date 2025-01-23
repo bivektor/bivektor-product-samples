@@ -173,7 +173,7 @@ authentication method `none`.
 ### Standard OAuth Login
 
 #### Login URL
-http://localhost:8080/oauth2/authorization/keycloak?response_type=code&client_id=demoClient&redirect_uri=http://localhost:8888/demo-callback
+http://localhost:8080/oauth2/authorization/keycloak?response_type=code&client_id=demoClient&redirect_uri=http://localhost:8888/demo-callback&scope=openid+email
 
 Redirect uri http://localhost:8888 is just a dummy address which doesn't have to be working. We'll just
 copy the `code` parameter from the URL after authentication.
