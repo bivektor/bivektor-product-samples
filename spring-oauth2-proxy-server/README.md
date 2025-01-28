@@ -306,6 +306,16 @@ properly encoded. Earlier there was a bug that caused some parameters to be sent
 in order to make sure we always redirect back to the originating application.
 * Note that some of these changes are breaking changes in associated component APIs
 
+### 1.4.3-beta
+* **Support for refresh token revocation**: Clients can revoke refresh tokens by posting to the token
+revocation endpoint (default path: `/oauth2/revoke/`). Proxy server validates and sends the revocation
+request to the target authorization server. Revocation endpoint is determined by the `revocation_endpoint`
+parameter in `ClientRegistration.providerDetails.configurationMetadata`. For this example, it is 
+automatically configured for the `keycloak` client by Spring OAuth2 Client using the associated provider's
+openid configuration discovery endpoint. Note that `token_type_hint` parameter is required and it must
+be sent as `refresh_token`. Revocation of other token types are not supported. This change requires customization
+of the token revocation endpoint as shown in the `OAuth2AuthorizationServerConfiguration` class
+
 ## Disclaimer
 Proxy server strives to adhere to OAuth2 standards thanks to Spring Security OAuth2 libraries, but
 we do not accept any responsibility for potential security vulnerabilities or problems that may arise. 

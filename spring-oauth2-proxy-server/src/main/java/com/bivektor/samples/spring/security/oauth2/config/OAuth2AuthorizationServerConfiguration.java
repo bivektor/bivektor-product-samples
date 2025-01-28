@@ -54,6 +54,7 @@ public class OAuth2AuthorizationServerConfiguration {
       // Enable OpenID Connect 1.0
       server.oidc(Customizer.withDefaults());
       server.tokenEndpoint(customizer::configureTokenEndpoint);
+      server.tokenRevocationEndpoint(customizer::configureRevocationEndpoint);
     });
 
     http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());
