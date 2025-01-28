@@ -9,7 +9,7 @@ import com.bivektor.spring.security.oauth2.proxy.client.ProxyAuthenticationFailu
 import com.bivektor.spring.security.oauth2.proxy.client.ProxyAuthenticationSuccessHandler;
 import com.bivektor.spring.security.oauth2.proxy.client.ProxyOAuth2AuthorizationRequestResolver;
 import com.bivektor.spring.security.oauth2.proxy.client.ProxyOAuth2AuthorizedClientRepository;
-import com.bivektor.spring.security.oauth2.proxy.client.validation.DefaultProxyRequestValidator;
+import com.bivektor.spring.security.oauth2.proxy.client.validation.ProxyRequestValidators;
 import com.bivektor.spring.security.oauth2.proxy.config.ProxyBeansConfiguration;
 import com.bivektor.spring.security.oauth2.proxy.config.ProxyOAuth2LoginPostProcessor;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -83,7 +83,7 @@ public class DefaultSecurityConfiguration {
     // For demo purposes, setting a custom validator to disable allowed clients validation which validates
     // that the proxying client has proxy login access to a specific login client.
     // Remove or comment the line below to use the default validator
-    proxyResolver.setProxyRequestValidator(DefaultProxyRequestValidator.builder().allowAllClients().build());
+    proxyResolver.setProxyRequestValidator(ProxyRequestValidators.nullValidator());
 
     return proxyResolver;
   }

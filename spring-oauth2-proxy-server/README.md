@@ -221,6 +221,43 @@ Content-Length: 357
 client_id=demoClient&code=<authorization_code>&code_verifier=DdIlYe3RQ8G2a1NNOP114dTNKjch~h4Vb_gtDbIPl5T_6WCVox6hfuL_-_A-Db55&grant_type=authorization_code&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Fdemo-callback&code_challenge_method=S256
 ```
 
+### Example Spring Boot Test Client Configuration
+In order to test the proxy server using a Spring OAuth2 Login client, create a separate spring boot
+application add spring oauth2 client dependencies. Define the proxy server as a login client
+in your application configuration file as shown below:
+
+```
+server:
+  port: 3002
+  
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          demo:
+            provider: proxyProvider
+            client-id: demoClient
+            client-secret: demo
+            authorization-grant-type: authorization_code
+            scope: openid,profile,email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            client-name: Proxy client
+            client-authentication-method: client_secret_basic
+        provider:
+          proxyProvider:
+            issuer-uri: http://localhost:8080
+            authorization-uri: http://localhost:8080/oauth2/authorization/keycloak
+            user-info-uri: http://localhost:8181/realms/master/protocol/openid-connect/userinfo
+```
+
+`user-info-uri` must point to the target authorization server rather than the proxy server.
+With oauth2-client starter (`org.springframework.boot:spring-boot-starter-oauth2-client`) and
+default configuration, auto generated login page displays a login link to the proxy server.
+Note that, with this configuration, you must define the redirect uri `http://localhost:3002/login/oauth2/code/demo`
+as a valid uri for the associated client in the proxy server as we have done for this example
+project.
+
 ## Known Limitations
 * Exception handling is currently limited to basic OAuth2 authentication failures. While the proxy 
 server handles these failures, additional testing is needed for errors that may occur before authentication 
@@ -255,6 +292,19 @@ emitting four application events:
   - **ProxyLoginAuthorizationCreatedEvent**: After the authorization code is created and stored
 
   Additional details are available in DEBUG logs. We plan to enhance auditing capabilities in future releases without requiring customization of core components.
+
+## Release Notes
+### 1.4.2-beta
+* Fixed a bug that was keeping the users logged in after successful authentication. Ideally, we don't
+want users to be logged in to the proxy server once they are redirected back to the originating application
+* Proxy authorization request resolution logic now relies on Spring authorization server's
+validation and exception handling logic. With this change, redirect uri validation is done earlier to
+determine if we can redirect back to the client in case of an error.
+* Parameters in the redirect uris when redirecting back to the originating application are now 
+properly encoded. Earlier there was a bug that caused some parameters to be sent without proper url encoding.
+* Exceptions that may occur in event handlers during event publishing are just logged and ignored 
+in order to make sure we always redirect back to the originating application.
+* Note that some of these changes are breaking changes in associated component APIs
 
 ## Disclaimer
 Proxy server strives to adhere to OAuth2 standards thanks to Spring Security OAuth2 libraries, but

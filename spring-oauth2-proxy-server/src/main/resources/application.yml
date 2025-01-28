@@ -38,3 +38,5 @@ spring:
               redirect-uris:
                 # Dummy URL. It doesn't have to be running. We just use it to get the authorization code from the URL
                 - http://localhost:8888/demo-callback
+                # Correct URL if you are running a separate Spring boot client application as described in the readme
+                - http://localhost:3002/login/oauth2/code/demo
